@@ -10,9 +10,13 @@ That will help to understand whether the home advantage really exists and how mu
 The data was taken from this source: https://github.com/bicachu/EPL-fans-presence-experiment/tree/main/data. The
 author used Selenium for Python scraper to get the data from the official website of the Premier League.
 The scraper took:
+
 • Overall match events (number of yellow/red cards, passes, off-sides, etc.)
+
 • Scores
+
 • Goal information
+
 So the whole data is quantitative(except the names of teams) and easy to use.
 In order to use this in the project, various R packages were used to reprocess the data, analyze, and visualize
 to get necessary results. These include libraries dplyr and ggplot.
