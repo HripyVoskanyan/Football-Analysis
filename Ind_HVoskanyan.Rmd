@@ -1,0 +1,268 @@
+---
+title: |
+ <center> Home Team Advantage Analysis During the Lockdown </center> 
+ <center> Data Visualization </center> 
+ <center> American University of Armenia </center> 
+author: "Hripsime Voskanyan"
+output: 
+  pdf_document:
+    toc: true
+    fig_caption: yes
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, results = 'hide', tidy = TRUE, message = FALSE)
+```
+
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(lubridate)
+library(stringr)
+library(tidyr)
+library(zoo)
+library(extrafont)
+
+
+df <- read.csv('premier_league_matches.csv') %>% mutate(date = lubridate::as_date(date))
+
+limited_fans_matches <- c(59005, 58999,  59003, 59000, 58997, 59008, 59014, 59007, 59009, 59006, 59024, 59033, 59030, 59026, 59041)
+limited_df <- df%>%subset(match_id %in% limited_fans_matches)
+df <- df %>% subset(!match_id %in% limited_fans_matches)
+
+no_fans_df <- df %>% filter(date >= '2020-06-17') %>% arrange(date) %>% head(288)
+no_fans_df['fans_present'] <- 'No'
+fans_df <- df %>% filter(date <= '2020-03-09')   
+fans_df['fans_present'] <- 'Yes'
+
+
+matches_df <- rbind(fans_df, no_fans_df)
+
+```
+
+\newpage
+
+## Overview
+
+“Home team advantage” concept is familiar to many people who watch or play sports. It is about having an advantage and more chances to win the match when the team hosts in their field. The reasons of this phenomenon are not completely clear, however they include but are not excluded to field familiarity, comfort, travel effects, fan presence. The latter is considered to be the most significant factor. During the COVID-19 pandemic, restrictions were held all over the world and sports were not exceptions. Because of the situation, leagues started playing “ghost games”: games without any fans on the stadium. This had impact on the scores of major leagues, thus an analysis on how much the presence of supporters change the results of the game is useful to do. That will help to understand whether the home advantage really exists and how much of it depends on the presence of fans. Moreover, this paper’s visuals will help for further analysis of the topic.
+
+
+
+
+## Research Methodology
+
+As mentioned above, during the global pandemic, restrictions were held all over the world and all sports. However the most interesting to investigate is European football, because of certain reasons. American football has a shorter season compared to European one, thus the data is not big enough to do a good analysis on it. Moreover, basketball could be a good choice (NBA), but there was another problem with it. Starting from 2019-2020 season, all games were played in one stadium, therefore erasing all possible hosting team advantages. On the other hand European football has already started when the lockdown came, it has more teams, longer season, thus big enough to analyze. In order to do an analysis, The English Premier League (EPL) was chosen, as the restrictions had interesting result on it. Other possible leagues were Italian, Spanish, and German, however usual teams dominated as always. The data was taken from [this source](https://github.com/bicachu/EPL-fans-presence-experiment/tree/main/data). The author used Selenium for Python scraper to get the data from the [official website](https://www.premierleague.com/matchweek/6677/blog) of the Premier League. The scraper took:
+
+- Overall match events (number of yellow/red cards, passes, off-sides, etc.)
+- Scores
+- Goal information
+
+
+So the whole data is quantitative(except the names of teams) and easy to use.
+
+In order to use this in the project, various R packages were used to reprocess the data, analyze, and visualize to get necessary results. These include libraries dplyr and ggplot.
+
+## Literature Review
+As already mentioned in Overview, analyzing the phenomenon of home team advantage has always been interesting and many professionals analyzed it on different sports and leagues during different times. In “Home Advantage in Football: A Current Review of an Unsolved Puzzle” by Richard Pollard, home team advantage has always been an important factor in deciding how the result of a match would be [6]. It has an impact on the attitude of the audience, players, coaches, and even referees. Pollard gives different factors that might be reason of home team advantage and those include familiarity, referee bias, crowd effects, travel effects, special tactics, and etc. He highlights the crowd effect being the most obvious and dominant one. Interestingly, Polland in his paper mentions that the number of people in the audience does not really matter
+and the research shows that the effect works even in that case. However, the size, along with density and intensity of support are factors that need to be considered and analyzed.
+
+
+In another study “Home Ground Advantage of Individual Clubs in English Soccer” by Clarke and Norman, it is shown that the home team advantage differs for four divisions of English soccer [1]. They suggest a hypothesis about home advantage versus time in division. Tests has shown negative results, meaning that years in division and home advantage do not have a significant relationship.
+
+In various studies, scientists have tried to analyze whether factors like crowd size, density, and noise have an impact on home advantage. In “Home Advantage and Sports Performance: Evidence, Causes and Psychological Implications”, it is mentioned that all of these factors may not directly influence the match results but in other way [5]. Crowd size and noise can have a pressuring effect on referee and make them make biased decisions for the home team’s benefit. Furthermore, audience can influence not only referees, but also players and coaches and have an impact on their performance level.
+
+
+Going further, in the “Does the Home Advantage Depend on Crowd Support? Evidence from Same-Stadium Derbies” by Ponzo and Scoppa, the hypothesis about crowd influencing referee is also supported [7]. Moreover, the authors mention that crowd has a significant effect on derby matches (derby - a match between local rivals). This is an interesting hypothesis which will be analyzed further in the paper.
+
+
+Reaching nowadays restrictions Hill and Yperen in their work “Losing the Home Field Advantage When Playing Behind Closed Doors During COVID-19: Change or Chance?” analyzed whether the restriction on the audience because of lockdown has changed anything in European football [4]. Their results show that there was a decline in the number of goals that home team scored and a rise in the number of yellow cards for the home team. For the analysis they took English Premier League, Spanish La Liga, Italian Serie A, and German Bundesliga. They created 1,000,000 random samples for each equal to the number of matches without audience. The results of tests showed that the most affected was Bundesliga.
+
+
+On the topic of German football, another study has been done: “Does Crowd Support Drive the Home Advantage in Professional Football? Evidence from German Ghost Games during the COVID-19 Pandemic” [2]. The fact that home field advantage during lockdown should have been less on lower divisions is being discussed. That is because players of those teams are more used to playing with small audience. Another issue was that some teams played more “ghost games” than others. The authors concluded that the biggest driver for less home field advantage was smaller occupancy.
+
+
+Overall, there are many studies on analyzing home field advantage factors and more are being done now, because of new factor which is COVID-19 restrictions.
+
+
+## Hypotheses
+In order to understand the difference between games with fans, without fans, and with limited number of fans, informative data visualizations can be used. On the available data, which was described in Research Methodology, mutations will be done, in order to analyze the game results more thoroughly. I will use data visualization tools to see whether the number of goals is more for the home team and whether it decreased after restrictions. Moreover, as the fans and noise makes the match more alive and some pressure on them, making players sometimes even do things which can result in red and yellow cards, I will try to see the difference of this tendency with and without fans. For the same reason, there is also tendency with fans
+to score goals in last five minutes of halftimes, changing the whole match result. Thus, this is another hypothesis that will be addressed further in the research. As every European football league, EPL also has top five teams, which in average score more, and subsequently, win more. Therefore, taking this into account, it will be informative and useful, if I exclude them from the whole data and do analysis in this way as well. 
+
+## Analysis
+To start analyzing the difference between matches with fans and without fans, it is important to see when the COVID-19 has started in England and when the restrictions for EPL had started taking place. Before the dates, we should remember that for example in Old Tr afford (stadium in Manchester) there is a place for 76,000 fans for one match. So the first outbreak in England was back in January 31, 2020. Already in March, the numbers were enormous, and English Premier League has decided to stop playing until the situation will be considerably better. So the games were played until 9 of March and started to come back in June but with a rule of no fans present in matches. As our data includes 2019/2020 matches, and in December of 2020, for some teams there were good news in the form of some fans can be present in the game, we better exclude those from the data as outliers and analyze them independently. However, for these games, we cannot do deep analyses as the number of those games is only 15, but we need at least 30 to consider it as valuable data. 
+
+
+As already mentioned in the hypothesis there are researches that claim, in case of matches with fans there is a pressure on the players. Under the pressure football players might be more stressed, aggressive, show more emotions, and end up getting yellow or red cards. For example, there are cases, when a football player scores a goal, they take out their shirt as a way to celebrate the goal with fans. For this referee can give a yellow card to the player. However, we should take another angle and understand that we want to show the decline in the performance of home team game. In Figure 1, we can see the number of yellow cards for home team depending on how many they got in one game. First of all, let’s observe that the number of yellow
+cards in one game the club playing in their field is 1 or 2. Moreover, this shows that the number of clear games(no yellow cards) was a little bit more in case of fans. For a regular game with one and two yellow cards, home team performed worse when fans were present. However, if we look on the away team performance, we will see in the Figure 2 that the number of clear games(no yellow cards) is significantly more without the crowd. Thus, we can conclude that the performance of away team increased, whereas for home team the performance was better in the presence of fans.
+
+
+```{r, fig.height= 3, fig.width = 6, fig.cap = 'Home Team Yellow Cards'}
+matches_df %>% 
+  group_by(fans_present) %>% 
+  ggplot + 
+  aes(x = fans_present, fill = fans_present) +
+  geom_bar(width = 0.5) + 
+  facet_grid(. ~ home_yellow_cards) + 
+  labs(x = NULL, y = 'Matches',    
+       fill = 'Fans Present') + 
+  guides(x = 'none') + 
+  theme_bw()
+```
+
+```{r, fig.height= 3, fig.width = 6,  fig.cap = "Away Team Yellow Cards"}
+matches_df %>% 
+  group_by(fans_present) %>% 
+  ggplot + 
+  aes(x = fans_present, fill = fans_present) +
+  geom_bar(width = 0.5) + 
+  facet_grid(. ~ away_yellow_cards) + 
+  labs(x = NULL, y = 'Matches',    
+       fill = 'Fans Present') + 
+  guides(x = 'none') + 
+  theme_bw()
+```
+
+\newpage
+Another interesting aspect to analyze in a match is to see whether there is a difference in possession of the ball depending on the presence of the crowd. In Figure 3 and 4 we can see the distributions of the ball possession for home team and away team. The line in the box plot inside the figures shows the median. For both cases the median is almost the same, meaning that in average possession of ball does not change and we cannot claim anything for this matter.
+
+
+```{r, fig.height= 2, fig.width = 3.5, fig.cap='Home Team Possession (%)'}
+p <- ggplot(matches_df, aes(x=fans_present, y=home_possession, fill = fans_present))+ 
+  geom_violin(trim = FALSE) + geom_boxplot(width=0.1, fill="white") + labs(x="Fans Present", y = " ") + theme(legend.position  = "none")
+p
+
+
+```
+
+
+```{r, fig.height= 2, fig.width = 3.5, fig.cap='Away Team Possession (%)'}
+g <- ggplot(matches_df, aes(x=fans_present, y=away_possession, fill = fans_present))+ 
+  geom_violin(trim = FALSE) + geom_boxplot(width=0.1, fill="white") + labs(x="Fans Present", y = " ") + theme(legend.position  = "none")
+g
+```
+
+\newpage
+
+As we know every league has top three to five teams that usually perform better than everyone else, thus they can affect overall analysis to see whether in average home field advantage got less with the pandemic regulations or not. Therefor, we excluded top five teams of EPL: Manchester United, Manchester City, Chelsea, Arsenal, and Liverpool (based on the research). Now in Figure 5, we can see the number of goals for home and away teams depending on the whether there were fans or not. We can easily notice that for home teams, the total number of goals is almost the same with or without fans. However if we look in general on the total number of scored goals for the teams when they played as guests in Figure 6, it is clear that their performance was much better in ghost games. 
+
+
+
+```{r, fig.height= 2, fig.width = 3.5, fig.cap = "Home and Away Team Goals"}
+
+
+top <- c("Manchester United", "Arsenal", "Chelsea", "Manchester City", "Liverpool")
+df <- df %>% subset(!home_team %in% top) %>% subset(!away_team %in% top)
+
+no_fans_df <- df %>% filter(date >= '2020-06-17') %>% arrange(date) 
+no_fans_df['fans_present'] <- 'No'
+fans_df <- df %>% filter(date <= '2020-03-09')   
+fans_df['fans_present'] <- 'Yes'
+matches_df <- rbind(fans_df, no_fans_df)
+
+matches_df %>% 
+  group_by(fans_present) %>% 
+  summarise(total = sum(home_ft_score)) %>% 
+  ggplot + 
+  aes(x = fans_present, y = total, fill = fans_present) + 
+  geom_bar(stat='identity', width=0.5) +
+  labs(title = 'Home Team Goals', x = NULL, y = 'Matches',    
+       fill = 'Fans Present') + 
+  theme_bw() +
+  coord_flip()
+
+```
+
+```{r, fig.height= 2, fig.width = 3.5, fig.cap = "Away Team Goals"}
+
+matches_df %>% 
+  group_by(fans_present) %>% 
+  summarise(total = sum(away_ft_score)) %>% 
+  ggplot + 
+  aes(x = fans_present, y = total, fill = fans_present) + 
+  geom_bar(stat='identity', width=0.5) +
+  labs(title = 'Away Team Goals', x = NULL, y = 'Matches',    
+       fill = 'Fans Present') + 
+  theme_bw() +
+  coord_flip()
+```
+
+
+Finally, in Figure 7 we can see the number of home shots for each team including the top five. We can see that there were teams that played particularly better only without the crowd, e.g. Leeds United. Moreover, for the season winner Liverpool, we can see that they played more inconsistent without fans, because range of blue dots is bigger than of yellow ones. For Manchester City (2nd place) we see that the yellow dots are higher than blue ones in average, meaning that they performed way better in case of crowd presence.
+
+
+
+```{r, fig.cap = "Home Shots"}
+df <- read.csv('premier_league_matches.csv') %>% mutate(date = lubridate::as_date(date))
+
+limited_fans_matches <- c(59005, 58999,  59003, 59000, 58997, 59008, 59014, 59007, 59009, 59006, 59024, 59033, 59030, 59026, 59041)
+limited_df <- df%>%subset(match_id %in% limited_fans_matches)
+df <- df %>% subset(!match_id %in% limited_fans_matches)
+
+no_fans_df <- df %>% filter(date >= '2020-06-17') %>% arrange(date) %>% head(288)
+no_fans_df['fans_present'] <- 'No'
+fans_df <- df %>% filter(date <= '2020-03-09')   
+fans_df['fans_present'] <- 'Yes'
+
+
+matches_df <- rbind(fans_df, no_fans_df)
+ggdotchart(matches_df, x = "home_team", y = "home_shots",
+           color = "fans_present",                               
+           palette = c("#00AFBB", "#E7B800", "#FC4E07"), 
+           sorting = "descending",                       
+           add = "segments",                            
+           add.params = list(color = "lightgray", size = 2), 
+           group = "fans_present",                                
+           dot.size = 6,                       
+           font.label = list(color = "white", size = 9, 
+                             vjust = 0.5),               
+           ggtheme = theme_pubr()                        
+           )+
+  geom_hline(yintercept = 0, linetype = 2, color = "lightgray") + xlab(" ") + ylab(" ")
+
+```
+
+
+\newpage
+
+
+## Conclusion and Further Improvements
+
+As the reader can notice, there are benefits for home teams that in some ways got lost when the global pandemic began and restrictions started to take place. Guest teams started to score more goals, however for home teams number of goals did not change much. All of these considering the fact of top teams. Furthermore, we can observe that without fans the number of yellow cards for guest teams was less but for home teams more. Guest teams had significantly more clear games, which takes us back to the hypothesis mentioned earlier in the research, being that sometimes under the pressure of crowd referee is biased and makes decisions to the favor of home team. It is also important to notice, this does not necessarily mean that the number of goals and targets fall. Therefore, we can conclude that without fans present in matches, we get more fair games with less biased referees, leading us to get the real situation of the performance of teams. However, matches without fans are still sad and uninteresting, as the games are played for fans, so the even the trade-off is really good, it is something not acceptable, but interesting to observe and analyze. For further improvements, one can consider, taking the data for other major leagues as Bundesliga, Series A, La Liga, and analyze the situation similarly there. There might be some problems in analyzing for example La Liga, as in Spain, there is a tendency that major 2-3 teams: Real Madrid, Barcelona, and Atletico Madrid(for recent years) win the league every year. Thus, it will be good to observe the results of La Liga without the matches of these teams in order to see how other teams perform with each other. Moreover, it will be good to observe the games of Euro 2020, which took place in summer 2021. As the Euro 2020 matches took place simultaneously in different countries, restrictions were different. Therefore, for some games there were more fans, and for some games, the number of fans were very low. In this way, one can see whether really the number of fans affect the quality of game and bias of a referee. Correlation graphs can be used for this purposes.
+
+
+
+
+## References
+
+[1] Clarke, Stephen R., and John M. Norman. “Home Ground Advantage of Individual Clubs in English Soccer.” The Statistician, vol. 44, no. 4, 1995, p. 509, 10.2307/2348899. Accessed 11 Mar. 2020.\\
+
+[2] Fischer, Kai, and Justus Haucap. “Does Crowd Support Drive the Home Advantage in Professional Football? Evidence from German Ghost Games during the COVID-19 Pandemic.” Journal of Sports Economics, 8 July 2021, p. 152700252110265, 10.1177/15270025211026552. \\
+
+[3] Gayton, William F., and Guy Langevin. “Home Advantage: Does It Exist in Individual Sports.” Perceptual and Motor Skills, vol. 74, no. 3, June 1992, pp. 706–706, 10.2466/pms.1992.74.3.706.\\
+
+[4] Hill, Yannick, and Nico W. Van Yperen. “Losing the Home Field Advantage When Playing behind Closed Doors during COVID-19: Change or Chance?” Frontiers in Psychology, vol. 12, 15 Apr. 2021, 10.3389/fpsyg.2021.658452. Accessed 29 June 2021. \\
+
+[5] Legaz Arrese, Alejandro, et al. “Home Advantage and Sports Performance: Evidence, Causes and Psychological Implications.” Universitas Psychologica, vol. 12, no. 3, 18 Jan. 2013, 10.11144/javeriana.upsy12-3.hasp. Accessed 8 Mar. 2020. \\
+
+[6] Pollard, Richard. “Home Advantage in Football: A Current Review of an Unsolved Puzzle.” The Open Sports Sciences Journal, vol. 1, no. 1, 13 June 2008, pp. 12–14, pdfs.semanticscholar.org/1398/50269061a9492c701899b7c9902832d7405f.pdf, 10.2174/1875399x00801010012. Accessed 12 Dec. 2019. \\
+
+[7] Ponzo, Michela, and Vincenzo Scoppa. “Does the Home Advantage Depend on Crowd Support? Evidence from Same-Stadium Derbies.” SSRN Electronic Journal, 2014, 10.2139/ssrn.2426859. Accessed 12 Dec. 2021.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
